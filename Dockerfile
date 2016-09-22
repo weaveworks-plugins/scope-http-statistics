@@ -8,5 +8,5 @@ RUN echo "deb http://52.8.15.63/apt trusty main" | tee /etc/apt/sources.list.d/i
 RUN apt-get update && apt-get install -y libbcc libbcc-examples python-bcc
 
 # Add our plugin
-ADD ./http-requests.c ./http-statistics.py /usr/bin/
+ADD ./ebpf-http-statistics.c ./http-statistics.py /usr/bin/
 ENTRYPOINT ["/usr/bin/http-statistics.py"]
