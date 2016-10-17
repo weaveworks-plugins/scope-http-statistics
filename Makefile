@@ -1,8 +1,12 @@
 .PHONY: run clean
 
 SUDO=$(shell docker info >/dev/null 2>&1 || echo "sudo -E")
-IMAGE=weavescope-http-statistics-plugin
-UPTODATE=.uptodate
+EXE=http-statistics
+ORGANIZATION=weaveworksplugins
+IMAGE=$(ORGANIZATION)/scope-$(EXE)
+NAME=$(ORGANIZATION)-scope-$(EXE)
+
+UPTODATE=.$(EXE).uptodate
 
 run: $(UPTODATE)
 	$(SUDO) docker run --rm -it \
@@ -11,8 +15,7 @@ run: $(UPTODATE)
 	  -v /usr/src:/usr/src \
 	  -v /sys/kernel/debug/:/sys/kernel/debug/ \
 	  -v /var/run/scope/plugins:/var/run/scope/plugins \
-	  --name $(IMAGE) \
-	  $(IMAGE)
+	  --name $(NAME) $(IMAGE)
 
 $(UPTODATE): Dockerfile http-statistics.py ebpf-http-statistics.c
 	$(SUDO) docker build -t $(IMAGE) .

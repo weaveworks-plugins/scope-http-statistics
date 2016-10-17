@@ -1,0 +1,48 @@
+general:
+  branches:
+    ignore:
+      - gh-pages
+
+machine:
+  services:
+    - docker
+  environment:
+    GOPATH: /home/ubuntu
+    SRCDIR: /home/ubuntu/scope-http-statistics
+    PATH: $PATH:$HOME/.local/bin
+
+dependencies:
+  cache_directories:
+    - "~/docker"
+  override:
+    - echo "no dependencies"
+
+test:
+  override:
+    - cd $SRCDIR && make .http-statistics.uptodate && docker tag weaveworksplugins/scope-http-statistics weaveworksplugins/scope-http-statistics:$(./tools/image-tag):
+        parallel: false
+        timeout: 300
+
+deployment:
+  hub:
+    branch: master
+    commands:
+      - |
+        test -z "${DOCKER_USER}" || (
+          docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS &&
+          (test "${DOCKER_ORGANIZATION:-$DOCKER_USER}" == "weaveworksplugins" || (
+            docker tag weaveworksplugins/scope-http-statistics:latest ${DOCKER_ORGANIZATION:-$DOCKER_USER}/scope-http-statistics:latest &&
+            docker tag weaveworksplugins/scope-http-statistics:$(./tools/image-tag) ${DOCKER_ORGANIZATION:-$DOCKER_USER}/scope-http-statistics:$(./tools/image-tag)
+          )) &&
+          docker push ${DOCKER_ORGANIZATION:-$DOCKER_USER}/scope-http-statistics &&
+          docker push ${DOCKER_ORGANIZATION:-$DOCKER_USER}/scope-http-statistics:$(./tools/image-tag)
+        )
+  hub-dev:
+    branch: /^((?!master).)*$/  # not the master branch
+    commands:
+      - >
+        test -z "${DEPLOY_BRANCH}" || test -z "${DOCKER_USER}" || (
+          docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS &&
+          docker tag weaveworksplugins/scope-http-statistics:latest ${DOCKER_ORGANIZATION:-$DOCKER_USER}/scope-http-statistics:${CIRCLE_BRANCH//\//-} &&
+          docker push ${DOCKER_ORGANIZATION:-$DOCKER_USER}/scope-http-statistics:${CIRCLE_BRANCH//\//-}
+        )
