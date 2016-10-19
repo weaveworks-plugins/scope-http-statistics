@@ -212,17 +212,20 @@ class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         process_nodes, response_code_key_list = kernel_inspector.on_http_stats(self.get_process_nodes)
         metric_templates = collections.defaultdict(dict)
         priority = 0.1
-        metric_templates['http_requests_per_second'] =  {
+        metric_templates['http_requests_per_second'] = {
                         'id':       'http_requests_per_second',
                         'label':    'HTTP Req/Second',
                         'priority': priority,
         }
         for response_code_key in response_code_key_list:
             http_code = string.split(response_code_key, '_')[1]
+            http_code_priority = http_code
+            if http_code == "OTHERS":
+                http_code_priority = "1000"
             metric_templates[response_code_key] = {
                 'id': response_code_key,
                 'label': 'HTTP Resp ' + http_code + '/Second',
-                'priority': (float(http_code) / 1000),
+                'priority': (float(http_code_priority) / 1000),
             }
         report = {
             'Process': {
