@@ -3,6 +3,11 @@
 
 /* Request tracking */
 
+/* http://stackoverflow.com/questions/25047905/http-request-minimum-size-in-bytes
+ * minimum length of http request is always greater than 7 bytes.
+ */
+#define HTTP_REQUEST_MIN_LEN 7
+
 /* Table from (Task group id|Task id) to (Number of received http requests).
  * We need to gather requests per task and not only per task group (i.e. userspace pid)
  * so that entries can be cleared up independently when a task exits.
@@ -30,7 +35,7 @@ int kprobe__skb_copy_datagram_iter(struct pt_regs *ctx, const struct sk_buff *sk
 	 * We could inspect the full packet but:
 	 * - It's very inefficient.
 	 * - Examining the non-linear (paginated) area of a socket buffer would be
-	 *	 really tricky from ebpf.
+	 *   really tricky from ebpf.
 	 */
 
 	/* Verify it's a TCP socket
@@ -47,7 +52,7 @@ int kprobe__skb_copy_datagram_iter(struct pt_regs *ctx, const struct sk_buff *sk
 		return 0;
 	}
 	/* The socket type and protocol are not directly addressable since they are
-	 * bitfields.	We access them by assuming sk_write_queue is immediately before
+	 * bitfields. We access them by assuming sk_write_queue is immediately before
 	 * them (admittedly pretty hacky).
 	 */
 	unsigned int flags = 0;
@@ -65,11 +70,8 @@ int kprobe__skb_copy_datagram_iter(struct pt_regs *ctx, const struct sk_buff *sk
 
 	/* Inline implementation of skb_headlen(). */
 	unsigned int head_len = skb->len - skb->data_len;
-	/* http://stackoverflow.com/questions/25047905/http-request-minimum-size-in-bytes
-	 * minimum length of http request is always greater than 7 bytes.
-	 */
 	unsigned int available_data = head_len - offset;
-	if (available_data < 7) {
+	if (available_data < HTTP_REQUEST_MIN_LEN) {
 		return 0;
 	}
 
@@ -81,7 +83,7 @@ int kprobe__skb_copy_datagram_iter(struct pt_regs *ctx, const struct sk_buff *sk
 	 * parsers infeasible.
 	 */
 	u8 data[8] = {};
-	if (available_data >= 8) {
+	if (available_data > HTTP_REQUEST_MIN_LEN) {
 		/* We have confirmed having access to 7 bytes, but need 8 bytes to check the
 		 * space after OPTIONS. bpf_probe_read() requires its second argument to be
 		 * an immediate, so we obtain the data in this unsexy way.

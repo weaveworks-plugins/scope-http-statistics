@@ -19,8 +19,8 @@ import SocketServer
 import string
 
 EBPF_PROGRAM = "ebpf-http-statistics.c"
-EBPF_TABLE_REQUESTS_RATE_NAME = "received_http_requests"
-EBPF_TABLE_RESPONSES_CODE_NAME = "sent_http_responses"
+EBPF_REQUEST_RATE_TABLE_NAME = "received_http_requests"
+EBPF_RESPONSE_CODE_TABLE_NAME = "sent_http_responses"
 PLUGIN_ID="http-statistics"
 PLUGIN_UNIX_SOCK = "/var/run/scope/plugins/" + PLUGIN_ID + ".sock"
 
@@ -61,7 +61,7 @@ class KernelInspector(threading.Thread):
     def update_http_request_rate_per_pid(self, last_req_count_snapshot):
         # Aggregate the kernel's per-task http request counts into userland's
         # per-process counts
-        req_count_table = self.bpf.get_table(EBPF_TABLE_REQUESTS_RATE_NAME)
+        req_count_table = self.bpf.get_table(EBPF_REQUEST_RATE_TABLE_NAME)
         new_req_count_snapshot = collections.defaultdict(int)
         for pid_tgid, req_count in req_count_table.iteritems():
             # Note that the kernel's tgid maps into userland's pid
@@ -87,7 +87,7 @@ class KernelInspector(threading.Thread):
     def update_http_resp_per_pid(self, last_resp_count_snapshot):
         # Aggregate the kernel's per-task http response code counts into userland's
         # per-process counts
-        resp_count_table = self.bpf.get_table(EBPF_TABLE_RESPONSES_CODE_NAME)
+        resp_count_table = self.bpf.get_table(EBPF_RESPONSE_CODE_TABLE_NAME)
         new_resp_count_snapshot = collections.defaultdict(dict)
 
         for pid_tgid, codes_counts in resp_count_table.iteritems():
