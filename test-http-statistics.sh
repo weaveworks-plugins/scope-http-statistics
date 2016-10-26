@@ -9,5 +9,6 @@ TARGET_PORT="8080"
 
 while true; do
     curl http://$TARGET_IP:$TARGET_PORT &> /dev/null
+    curl http://$TARGET_IP:$TARGET_PORT/not/exist &> /dev/null
     sleep 0.2
 done
