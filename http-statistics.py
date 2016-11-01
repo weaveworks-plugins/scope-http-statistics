@@ -17,12 +17,13 @@ import socket
 import BaseHTTPServer
 import SocketServer
 import string
+import shutil
 
 EBPF_PROGRAM = "ebpf-http-statistics.c"
 EBPF_REQUEST_RATE_TABLE_NAME = "received_http_requests"
 EBPF_RESPONSE_CODE_TABLE_NAME = "sent_http_responses"
 PLUGIN_ID="http-statistics"
-PLUGIN_UNIX_SOCK = "/var/run/scope/plugins/" + PLUGIN_ID + ".sock"
+PLUGIN_UNIX_SOCK = "/var/run/scope/plugins/" + PLUGIN_ID + "/" + PLUGIN_ID + ".sock"
 
 # Keep in sync with ebpf-http-statistics.c enum http_codes
 idx_to_http_code = {
@@ -262,9 +263,9 @@ class PluginServer(SocketServer.ThreadingUnixStreamServer):
     daemon_threads = True
 
     def __init__(self, socket_file, kernel_inspector):
-        mkdir_p(os.path.dirname(socket_file))
         self.socket_file = socket_file
-        self.delete_socket_file()
+        self.delete_plugin_directory()
+        mkdir_p(os.path.dirname(socket_file))
         self.kernel_inspector = kernel_inspector
         self.hostname = socket.gethostname()
         SocketServer.UnixStreamServer.__init__(self, socket_file, PluginRequestHandler)
@@ -273,14 +274,15 @@ class PluginServer(SocketServer.ThreadingUnixStreamServer):
         # Make the logger happy by providing a phony client_address
         self.RequestHandlerClass(request, '-', self)
 
-    def delete_socket_file(self):
-        if os.path.exists(self.socket_file):
-            os.remove(self.socket_file)
+    def delete_plugin_directory(self):
+        if os.path.exists(os.path.dirname(self.socket_file)):
+            shutil.rmtree(os.path.dirname(self.socket_file), ignore_errors=True)
 
 
 def mkdir_p(path):
     try:
-        os.makedirs(path)
+        # we set the permissions to 0700, because only owner and root should be able to access to the plugin directory
+        os.makedirs(path, mode=0o700)
     except OSError as exc:
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
@@ -293,13 +295,14 @@ if __name__ == '__main__':
     kernel_inspector.setDaemon(True)
     kernel_inspector.start()
     plugin_server = PluginServer(PLUGIN_UNIX_SOCK, kernel_inspector)
+
     def sig_handler(b, a):
-        plugin_server.delete_socket_file()
+        plugin_server.delete_plugin_directory()
         exit(0)
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
     try:
         plugin_server.serve_forever()
     except:
-        plugin_server.delete_socket_file()
+        plugin_server.delete_plugin_directory()
         raise
