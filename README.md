@@ -11,13 +11,49 @@ You need `/sys/kernel/debug/` in order to be able to build the eBPF program gene
 
 ## How to Run Scope HTTP Statistics Plugin
 
+This plugin requires:
+
+* kernel version [>=4.1](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md) running on the host to be able to attach eBPF to kprobes.
+* Kernel build directory to be available in `/lib/modules/<kernel-version>/build`. Depending on your distribution you might need to add this symlink: `ln -s /lib/modules/<kernel-version>/build /lib/modules/<kernel-version>/source`.
+
+The Scope HTTP Statistics plugin works with `Weave Scope`, you need to have Scope up and running before you can use it. If the running plugin has been registered by Scope, you will see it in the list of `PLUGINS` in the bottom right of the UI (see the rectangle in the above figure).
+
+### Using a pre-built Docker image
+
+If you want to make sure of running the latest available version of the plugin, you can pull the image from docker hub.
+
+```
+docker pull weaveworksplugins/scope-http-statistics:latest
+```
+
+To run the Scope HTTP Statistics plugin you just need to run the following command.
+
+```
+sudo docker run --rm -it \
+	  --privileged --net=host --pid=host \
+	  -v /lib/modules:/lib/modules \
+	  -v /usr/src:/usr/src \
+	  -v /sys/kernel/debug/:/sys/kernel/debug/ \
+	  -v /var/run/scope/plugins:/var/run/scope/plugins \
+	  --name weaveworksplugins-scope-http-statistics weaveworksplugins/scope-http-statistics
+```
+
+### Kubernetes
+
+If you want to use the Scope HTTP Statistics plugin in an already set up Kubernetes cluster with Weave Scope running on it, you just need to run:
+
+```
+kubectl create -f https://github.com/weaveworks-plugins/scope-http-statistics/tree/master/deployments/k8s-http-statistics.yaml
+```
+
+### Recompiling
 * Run the HTTP Statistics plugin
 	* `git clone git@github.com:weaveworks-plugins/scope-http-statistics.git`
-	* `cd scope-http-statistics.sh; make`
+	* `cd scope-http-statistics; make`
 
-**Note** If Scope HTTP Statistics plugin has been registered by Scope, you will see it in the list of `PLUGINS` in the bottom right of the UI (see the rectangle in the above figure).
+## Testing
 
-* In another terminal, run an `nginx` instance `docker run --rm --name http-statistics-nginx -p 8080:80 nginx`
+* Run an `nginx` instance `docker run --rm --name http-statistics-nginx -p 8080:80 nginx`
 * Run `sh test-http-statistics.sh`, press Ctrl+c to terminate the test.
 * Go to the Weave Scope UI [http://localhost:4040](http://localhost:4040).
 * Open the `http-statistics-nginx` container.
