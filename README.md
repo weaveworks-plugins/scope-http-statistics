@@ -16,7 +16,10 @@ This plugin requires:
 * kernel version [>=4.1](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md) running on the host to be able to attach eBPF to kprobes.
 * Kernel build directory to be available in `/lib/modules/<kernel-version>/build`. Depending on your distribution you might need to add this symlink: `ln -s /lib/modules/<kernel-version>/build /lib/modules/<kernel-version>/source`.
 
-The Scope HTTP Statistics plugin works with `Weave Scope`, you need to have Scope up and running before you can use it. If the running plugin has been registered by Scope, you will see it in the list of `PLUGINS` in the bottom right of the UI (see the rectangle in the above figure).
+The Scope HTTP Statistics plugin can be executed stand alone.
+It will respond to `GET /report` request on the `/var/run/scope/plugins/http-statistics/http-statistics.sock` in a JSON format.
+If the running plugin has been registered by Scope, you will see it in the list of `PLUGINS` in the bottom right of the UI (see the green rectangle in the above figure).
+The measured values are shown in the *STATUS* section (see the circle in the above figure).
 
 ### Using a pre-built Docker image
 
