@@ -13,7 +13,10 @@ You need `/sys/kernel/debug/` in order to be able to build the eBPF program gene
 
 This plugin requires:
 
-* kernel version [>=4.1](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md) running on the host to be able to attach eBPF to kprobes.
+* kernel version [>=4.2](https://github.com/iovisor/bcc/blob/master/docs/kernel-versions.md)
+ * Attaching to kprobes requires >=4.1.
+ * `bpf_probe_read()` requires >=4.1.
+ * `bpf_get_current_pid_tgid()` requires >=4.2.
 * Kernel build directory to be available in `/lib/modules/<kernel-version>/build`. Depending on your distribution you might need to add this symlink: `ln -s /lib/modules/<kernel-version>/build /lib/modules/<kernel-version>/source`.
 
 The Scope HTTP Statistics plugin can be executed stand alone.
