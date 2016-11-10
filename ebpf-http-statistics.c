@@ -238,8 +238,7 @@ static int http_code_atoi(char hundreds, char tens, char units)
 /* Update HTTP codes in the BPF hash table. */
 static int update_sent_http_responses_codes(u64 pid_tgid, int http_code)
 {
-	struct http_response_codes_t new_codes_counts;
-	memset(new_codes_counts.codes, 0, sizeof(new_codes_counts));
+	struct http_response_codes_t new_codes_counts = {0, };
 
 	struct http_response_codes_t *current_codes_counts = sent_http_responses.lookup_or_init(&pid_tgid, &new_codes_counts);
 	new_codes_counts = *current_codes_counts;
@@ -357,7 +356,7 @@ int kprobe__copy_from_iter(struct pt_regs *ctx, void *addr, size_t bytes, struct
 	/* We are in the tcp_sendmsg function, save the buffer pointer
 	 * No risk of overwriting because of copy_pending != NULL
 	 */
-	struct copy_from_iter_args_t cfia;
+	struct copy_from_iter_args_t cfia = {0,};
 	bpf_probe_read(&cfia.data, sizeof(void *), &addr);
 	bpf_probe_read(&cfia.bytes, sizeof(size_t), &bytes);
 	copy_from_iter_args_table.update(&pid_tgid, &cfia);
@@ -377,7 +376,7 @@ int kretprobe__copy_from_iter(struct pt_regs *ctx)
 	/* Remove the hash table entry before reading the buffer */
 	copy_from_iter_args_table.delete(&pid_tgid);
 
-	struct copy_from_iter_args_t cfia;
+	struct copy_from_iter_args_t cfia = {0,};
 	bpf_probe_read(&cfia, sizeof(struct copy_from_iter_args_t), cfia_p);
 
 
