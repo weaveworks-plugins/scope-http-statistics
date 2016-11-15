@@ -1,0 +1,43 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    app: weavescope
+    weavescope-component: weavescope-http-statistics-plugin
+  name: weavescope-http-statistics-plugin
+spec:
+  template:
+    metadata:
+      labels:
+        app: weavescope
+        weavescope-component: weavescope-http-statistics-plugin
+    spec:
+      hostPID: true
+      hostNetwork: true
+      containers:
+        - name: weavescope-http-statistics-plugin
+          image: weaveworksplugins/scope-http-statistics:latest
+          securityContext:
+            privileged: true
+          volumeMounts:
+          - name: scope-plugins
+            mountPath: /var/run/scope/plugins
+          - name: lib-modules
+            mountPath: /lib/modules
+          - name: usr-src
+            mountPath: /usr/src
+          - name: sys-kernel-debug
+            mountPath: /sys/kernel/debug
+      volumes:
+        - name: scope-plugins
+          hostPath:
+            path: /var/run/scope/plugins
+        - name: lib-modules
+          hostPath:
+            path:  /lib/modules
+        - name: usr-src
+          hostPath:
+            path: /usr/src
+        - name: sys-kernel-debug
+          hostPath:
+            path: /sys/kernel/debug
