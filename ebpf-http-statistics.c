@@ -83,14 +83,15 @@ int kprobe__skb_copy_datagram_iter(struct pt_regs *ctx, const struct sk_buff *sk
 	 * parsers infeasible.
 	 */
 	u8 data[8] = {};
+	void* dst = skb->data + offset;
 	if (available_data > HTTP_REQUEST_MIN_LEN) {
 		/* We have confirmed having access to 7 bytes, but need 8 bytes to check the
 		 * space after OPTIONS. bpf_probe_read() requires its second argument to be
 		 * an immediate, so we obtain the data in this unsexy way.
 		 */
-		bpf_probe_read(&data, 8, skb->data + offset);
+		bpf_probe_read(&data, 8, dst);
 	} else {
-		bpf_probe_read(&data, 7, skb->data + offset);
+		bpf_probe_read(&data, 7, dst);
 	}
 
 	switch (data[0]) {
