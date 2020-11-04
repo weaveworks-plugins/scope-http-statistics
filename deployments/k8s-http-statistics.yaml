@@ -6,6 +6,9 @@ metadata:
     weavescope-component: weavescope-http-statistics-plugin
   name: weavescope-http-statistics-plugin
 spec:
+  selector:
+    matchLabels:
+      app: weavescope
   template:
     metadata:
       labels:
