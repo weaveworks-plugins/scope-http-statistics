@@ -88,9 +88,9 @@ int kprobe__skb_copy_datagram_iter(struct pt_regs *ctx, const struct sk_buff *sk
 		 * space after OPTIONS. bpf_probe_read() requires its second argument to be
 		 * an immediate, so we obtain the data in this unsexy way.
 		 */
-		bpf_probe_read(&data, 8, skb->data + offset);
+		bpf_probe_read_kernel(&data, 8, skb->data + offset);
 	} else {
-		bpf_probe_read(&data, 7, skb->data + offset);
+		bpf_probe_read_kernel(&data, 7, skb->data + offset);
 	}
 
 	switch (data[0]) {
