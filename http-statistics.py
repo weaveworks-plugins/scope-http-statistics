@@ -11,12 +11,11 @@ import json
 try:
     from urllib.parse import urlparse
 except ImportError:
-    from urlparse import urlparse
+    from urllib.parse import urlparse
 import threading
 import socket
-import BaseHTTPServer
-import SocketServer
-import string
+import http.server
+import socketserver
 import shutil
 
 EBPF_PROGRAM = "ebpf-http-statistics.c"
@@ -64,7 +63,7 @@ class KernelInspector(threading.Thread):
         # per-process counts
         req_count_table = self.bpf.get_table(EBPF_REQUEST_RATE_TABLE_NAME)
         new_req_count_snapshot = collections.defaultdict(int)
-        for pid_tgid, req_count in req_count_table.iteritems():
+        for pid_tgid, req_count in list(req_count_table.items()):
             # Note that the kernel's tgid maps into userland's pid
             # (not to be confused by the kernel's pid, which is
             # the unique identifier of a kernel task)
@@ -73,7 +72,7 @@ class KernelInspector(threading.Thread):
 
         # Compute request rate
         new_http_request_rate_per_pid = dict()
-        for pid, req_count in new_req_count_snapshot.iteritems():
+        for pid, req_count in list(new_req_count_snapshot.items()):
             request_delta = req_count
             if pid in last_req_count_snapshot:
                  request_delta -= last_req_count_snapshot[pid]
@@ -91,7 +90,7 @@ class KernelInspector(threading.Thread):
         resp_count_table = self.bpf.get_table(EBPF_RESPONSE_CODE_TABLE_NAME)
         new_resp_count_snapshot = collections.defaultdict(dict)
 
-        for pid_tgid, codes_counts in resp_count_table.iteritems():
+        for pid_tgid, codes_counts in list(resp_count_table.items()):
             # Note that the kernel's tgid maps into userland's pid
             # (not to be confused by the kernel's pid, which is
             # the unique identifier of a kernel task)
@@ -106,7 +105,7 @@ class KernelInspector(threading.Thread):
 
         # Compute response codes rate
         new_http_resp_code_rate_per_pid = dict()
-        for pid, resp_codes in new_resp_count_snapshot.iteritems():
+        for pid, resp_codes in list(new_resp_count_snapshot.items()):
             if pid not in new_http_resp_code_rate_per_pid:
                 new_http_resp_code_rate_per_pid[pid] = collections.defaultdict(dict)
             for code in resp_codes:
@@ -153,12 +152,12 @@ class KernelInspector(threading.Thread):
             resp_count_snapshot = self.update_http_resp_per_pid(resp_count_snapshot)
 
 
-class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class PluginRequestHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
     def __init__(self, *args, **kwargs):
         self.request_log = ''
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
+        http.server.BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     def do_GET(self):
         self.log_extra = ''
@@ -175,7 +174,7 @@ class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         date = datetime.datetime.utcnow()
         date = date.isoformat('T') + 'Z'
         process_nodes = collections.defaultdict(dict)
-        for pid, http_request_rate in http_request_rate_per_pid.iteritems():
+        for pid, http_request_rate in list(http_request_rate_per_pid.items()):
             node_key = "%s;%d" % (self.server.hostname, pid)
             if node_key not in process_nodes:
                 process_nodes[node_key] = collections.defaultdict(dict)
@@ -188,9 +187,9 @@ class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 }]
             }
         response_code_key_list = list()
-        for pid, http_responses_code_rate in http_resp_code_rate_per_pid.iteritems():
+        for pid, http_responses_code_rate in list(http_resp_code_rate_per_pid.items()):
             node_key = "%s;%d" % (self.server.hostname, pid)
-            for code, rate in http_responses_code_rate.iteritems():
+            for code, rate in list(http_responses_code_rate.items()):
                 if rate == 0:
                     continue
                 if node_key not in process_nodes:
@@ -219,7 +218,7 @@ class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         'priority': priority,
         }
         for response_code_key in response_code_key_list:
-            http_code = string.split(response_code_key, '_')[1]
+            http_code = str.split(response_code_key, '_')[1]
             http_code_priority = http_code
             if http_code == "OTHERS":
                 http_code_priority = "1000"
@@ -249,7 +248,7 @@ class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.send_header('Content-length', len(body))
         self.end_headers()
-        self.wfile.write(body)
+        self.wfile.write(body.encode())
 
     def log_request(self, code='-', size='-'):
         request_log = ''
@@ -259,7 +258,7 @@ class PluginRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                          self.requestline, str(code), str(size), request_log)
 
 
-class PluginServer(SocketServer.ThreadingUnixStreamServer):
+class PluginServer(socketserver.ThreadingUnixStreamServer):
     daemon_threads = True
 
     def __init__(self, socket_file, kernel_inspector):
@@ -268,7 +267,7 @@ class PluginServer(SocketServer.ThreadingUnixStreamServer):
         mkdir_p(os.path.dirname(socket_file))
         self.kernel_inspector = kernel_inspector
         self.hostname = socket.gethostname()
-        SocketServer.UnixStreamServer.__init__(self, socket_file, PluginRequestHandler)
+        socketserver.UnixStreamServer.__init__(self, socket_file, PluginRequestHandler)
 
     def finish_request(self, request, _):
         # Make the logger happy by providing a phony client_address
