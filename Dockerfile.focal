@@ -1,0 +1,23 @@
+FROM ubuntu:focal
+LABEL works.weave.role=system
+
+#Set default timezone
+ENV TZ=America/Los_Angeles
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt-get update && apt-get install -y build-essential git bison cmake flex  libedit-dev libllvm6.0 llvm-6.0-dev libclang-6.0-dev python zlib1g-dev libelf-dev python3-distutils libfl-dev linux-headers-generic
+#COPY /bcc /bcc
+COPY /bcc-build.sh /bcc-build.sh
+RUN chmod +x bcc-build.sh && /bcc-build.sh
+# RUN mkdir bcc/build && cd bcc/build 
+# RUN cd bcc/build && cmake ..
+# RUN cd bcc/build && make && make install 
+# RUN cd bcc/build && cmake -DPYTHON_CMD=python3 ..
+# RUN cd bcc/build/src/python/ && make && make install
+
+
+# Add our plugin
+ADD ./ebpf-http-statistics.c ./http-statistics.py /usr/bin/
+RUN chmod +x /usr/bin/http-statistics.py
+
+CMD ["python3", "/usr/bin/http-statistics.py"]
