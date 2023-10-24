@@ -1,4 +1,4 @@
-# Scope HTTP Statistics Plugin
+# DEPRECATED: Scope HTTP Statistics Plugin
 
 The Scope HTTP Statistics plugin provides HTTP traffic statistics to the [Weave Scope](https://github.com/weaveworks/scope) user using [eBPF](http://man7.org/linux/man-pages/man2/bpf.2.html).
 The HTTP Statistics plugin does not use any application-level instrumentation, it has a negligible performance toll (metrics are obtained in-kernel without any packet copying to user space).
