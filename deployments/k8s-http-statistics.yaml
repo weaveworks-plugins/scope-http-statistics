@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
@@ -6,6 +6,9 @@ metadata:
     weavescope-component: weavescope-http-statistics-plugin
   name: weavescope-http-statistics-plugin
 spec:
+  selector:
+    matchLabels:
+      app: weavescope
   template:
     metadata:
       labels:
